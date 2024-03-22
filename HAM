@@ -1,0 +1,72 @@
+import socket
+
+def compute_redundant_bits(binary_message):
+    n = len(binary_message)
+    r = 0
+    while 2**r < n + r + 1:
+        r += 1
+    bits = [0] * (n + r)
+    j = 0
+    for i in range(n + r):
+        if (i + 1) & i == 0:
+            continue
+        if j < n:
+            bits[i] = int(binary_message[j])
+            j += 1
+    for i in range(r):
+        mask = 1 << i
+        parity = 0
+        for j in range(1, n + r + 1):
+            if j & mask:
+                parity ^= bits[j - 1]
+        print(bits)
+        bits[2**i - 1] = parity
+    return bits
+
+HOST, PORT = '127.0.0.1', 65432
+
+binary_message = input("Enter the binary message: ")
+bits = compute_redundant_bits(binary_message)
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.connect((HOST, PORT))
+s.sendall(' '.join(map(str, bits)).encode())
+data = s.recv(1024)
+s.close()
+
+print('XOR result:', data.decode())
+
+
+import socket
+
+def xor_indices(bits):
+    bits = [i + 1 for i, bit in enumerate(bits) if bit]
+    print(bits)
+    result = 0
+    for i in range(len(bits)):
+        result ^= bits[i]
+    # result = reduce(lambda x, y: x ^ y, [i for i, bit in enumerate(bits) if bit])
+    return result
+
+HOST = '127.0.0.1'  
+PORT = 65432        
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.bind((HOST, PORT))
+s.listen()
+print("Server is listening...")
+conn, addr = s.accept()
+print('Connected by', addr)
+
+while True:
+    data = conn.recv(1024)
+    if not data:
+        break
+    bits = list(map(int, data.decode().split()))
+    print("Bits:" , bits)
+    result = xor_indices(bits)
+    conn.sendall(str(result).encode())
+
+conn.close()
+s.close()
+
